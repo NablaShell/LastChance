@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=LastChance Messenger
+Exec=/usr/local/bin/lastchance-messenger %u
+Type=Application
+MimeType=x-scheme-handler/lastchance;
+NoDisplay=true
