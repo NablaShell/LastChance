@@ -17,10 +17,10 @@ import (
 	"sync"
 	"time"
 
-	"messenger-wails/crypto"
-	"messenger-wails/identity"
-	"messenger-wails/network"
-	"messenger-wails/storage"
+	"github.com/NablaShell/LastChance/internal/crypto"
+	"github.com/NablaShell/LastChance/internal/identity"
+	"github.com/NablaShell/LastChance/internal/network"
+	"github.com/NablaShell/LastChance/internal/storage"
 
 	"github.com/dustin/go-humanize"
 	"github.com/gen2brain/beeep"
@@ -34,6 +34,7 @@ import (
 type App struct {
 	ctx    context.Context
 	logger *slog.Logger
+	config *network.Config 
 
 	// Хранилище
 	storage   *storage.Storage
@@ -62,10 +63,11 @@ type App struct {
 	safeFS *storage.SafeFSOps // безопасные операции с ФС
 }
 
-func NewApp() *App {
-	return &App{
-		sharedSecrets: make(map[string][]byte),
-	}
+func NewApp(cfg *network.Config) *App {
+    return &App{
+        config:        cfg,
+        sharedSecrets: make(map[string][]byte),
+    }
 }
 
 // ============================================================
@@ -142,7 +144,7 @@ func (a *App) startup(ctx context.Context) {
 
 	// --- Сетевые компоненты ---
 	a.sender = network.NewSender()
-	a.listener = network.NewListener()
+	a.listener = network.NewListener(a.config)
 
 	// Регистрация кастомного протокола
 	runtime.EventsOn(ctx, "scheme-requested", func(data ...interface{}) {
@@ -331,8 +333,6 @@ func (a *App) SetWindowActive(active bool) {
 // ============================================================
 // API ДЛЯ UI — ПРОФИЛЬ И КОНТАКТЫ
 // ============================================================
-
-// ... (previous imports unchanged)
 
 // UpdateContactNickname changes the alias of a contact identified by hash.
 // UpdateContactNickname changes the local alias/nickname of a contact.
@@ -537,7 +537,7 @@ func (a *App) SendFileNative(roomHash string) error {
 
 	messageText := fmt.Sprintf("📎 Файл: %s\nРазмер: %s\nХеш: %s",
 		fileName,
-		safeHumanize(fileSize), // новая функция
+		safeHumanize(fileSize),
 		fileHash,
 	)
 	if err := a.SendMessage(roomHash, messageText); err != nil {

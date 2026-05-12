@@ -116,9 +116,10 @@ We believe in radical transparency for security tools.
 
 I prefer decentralized and encrypted communication channels.
 
-*   **Session ID**: `[05f08d7242fe9cd621e98ef902cd1a21a8bf10d0c7c946e8c8e469d2396657a637]` (Preferred for quick chats)
+*   **Session ID**: [05f08d7242fe9cd621e98ef902cd1a21a8bf10d0c7c946e8c8e469d2396657a637](Preferred for quick chats)
 *   **Proton Mail**: `nabla.shell@proton.me` (For long-form inquiries; PGP preferred)
-*   **PGP Key**: Available in [public_key.asc](docs/public_key.asc)
+*   **PGP Key**: Available in [here](/docs/public_key.asc)
+    *PGP Fingerprint: 885F 3675 1D87 3F99 55ED 0ABC D1F6 A559 1458 507D*
 
 ## Funding
 

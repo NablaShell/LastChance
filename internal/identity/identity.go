@@ -8,9 +8,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"messenger-wails/storage"
 	"time"
-
+	"github.com/NablaShell/LastChance/internal/storage"
 	"golang.org/x/crypto/hkdf"
 
 	"github.com/tyler-smith/go-bip39"

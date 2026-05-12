@@ -12,30 +12,29 @@ import (
 )
 
 // ============================================================
-// URL СЕРВЕРОВ
+// SERVER URL
 // ============================================================
 
-var ServerBaseURL string // Для сообщений (/push, /pull)
-var FileServerURL string // Для файлов (/upload, /download)
+var ServerBaseURL string // For messages (/push, /pull)
+var FileServerURL string // For files (/upload, /download)
 
 func init() {
-	// URL сервера сообщений
-	if url := os.Getenv("SERVER_URL"); url != "" {
-		ServerBaseURL = url
-	} else {
-		ServerBaseURL = "https://metrics-collector-7152.duckdns.org/api-v1"
+	requiredEnvs := map[string]*string{
+		"SERVER_URL":      &ServerBaseURL,
+		"FILE_SERVER_URL": &FileServerURL,
 	}
 
-	// URL файлового сервера
-	if url := os.Getenv("FILE_SERVER_URL"); url != "" {
-		FileServerURL = url
-	} else {
-		FileServerURL = "https://metrics-collector-7152.duckdns.org/file-api"
+	for env, variable := range requiredEnvs {
+		val := os.Getenv(env)
+		if val == "" {
+			log.Fatalf("[FATAL] Missing required environment variable: %s. Please check your .env file.", env)
+		}
+		*variable = val
 	}
 }
 
 // ============================================================
-// СТРУКТУРА SENDER
+// SENDER STRUCTURE
 // ============================================================
 
 type Sender struct {
@@ -63,16 +62,15 @@ func NewSender() *Sender {
 }
 
 // ============================================================
-// ОТПРАВКА СООБЩЕНИЙ (PUSH)
+// SENDING MESSAGES (PUSH)
 // ============================================================
-
-// SendMessage отправляет зашифрованный пакет на сервер.
+// SendMessage sends an encrypted packet to the server.
 //
-// Пакет должен быть одного из разрешённых размеров: 256, 1024, 4096, 65536.
-// Это гарантируется crypto.EncryptMessage().
+// The packet must be one of the allowed sizes: 256, 1024, 4096, 65536.
+// This is guaranteed by crypto.EncryptMessage().
 //
-// При получении 429 (Rate Limit) делает до 3 повторных попыток
-// с экспоненциальной задержкой: 1с → 2с → 4с.
+// When receiving 429 (Rate Limit), retries up to 3 times
+// with exponential delay: 1s → 2s → 4s.
 func (s *Sender) SendMessage(targetHash string, packet []byte) error {
 	url := fmt.Sprintf("%s/push/%s", ServerBaseURL, targetHash)
 
@@ -80,21 +78,21 @@ func (s *Sender) SendMessage(targetHash string, packet []byte) error {
 	baseDelay := 1 * time.Second
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
-		// Создаём новый reader для каждой попытки
+		// Create a new reader for each attempt
 		req, err := http.NewRequest("POST", url, bytes.NewReader(packet))
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
 		}
 
-		// Заголовки
+		// Headings
 		req.Header.Set("Content-Type", "application/octet-stream")
 		req.Header.Set(MaskHeaderName, MaskHeaderValue)
 		req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:149.0) Gecko/20100101 Firefox/149.0")
 
-		// Выполняем запрос
+		// Execute the request
 		resp, err := s.client.Do(req)
 		if err != nil {
-			// Сетевая ошибка — пробуем ещё раз
+			// Network error - try again
 			if attempt == maxRetries {
 				return fmt.Errorf("request failed after %d retries: %w", maxRetries+1, err)
 			}
@@ -107,12 +105,12 @@ func (s *Sender) SendMessage(targetHash string, packet []byte) error {
 			}
 		}()
 
-		// Успех
+		// Success
 		if resp.StatusCode == http.StatusOK {
 			return nil
 		}
 
-		// Rate limit — ждём и пробуем снова
+		// Rate limit — wait and try again
 		if resp.StatusCode == http.StatusTooManyRequests {
 			if attempt == maxRetries {
 				body, _ := io.ReadAll(resp.Body)
@@ -124,7 +122,7 @@ func (s *Sender) SendMessage(targetHash string, packet []byte) error {
 			continue
 		}
 
-		// Другая ошибка сервера — не повторяем
+		//Another server error - we won’t repeat it
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("server returned %d: %s", resp.StatusCode, string(body))
 	}
@@ -133,23 +131,23 @@ func (s *Sender) SendMessage(targetHash string, packet []byte) error {
 }
 
 // ============================================================
-// ОТПРАВКА ФАЙЛОВ (UPLOAD)
+// SENDING FILES (UPLOAD)
 // ============================================================
 
-// UploadFile отправляет зашифрованный файл на файловый сервер.
+// UploadFile uploads the encrypted file to the file server.
 //
-// Параметры:
-//   - payload: зашифрованные данные файла (результат crypto.EncryptFile)
-//   - fileName: оригинальное имя файла (для заголовка X-File-Name)
+// Parameters:
+// - payload: encrypted file data (result of crypto.EncryptFile)
+// - fileName: original file name (for X-File-Name header)
 //
-// Возвращает SHA256 хеш файла, присвоенный сервером.
-// Этот хеш потом отправляется в чат для скачивания получателем.
+// Returns the SHA256 hash of the file assigned by the server.
+// This hash is then sent to the chat for download by the recipient.
 //
-// Лимиты:
-//   - Клиентская проверка: максимум 100MB
-//   - Серверная проверка: может быть меньше, зависит от конфигурации
+// Limits:
+// - Client check: maximum 100MB
+// - Server check: may be less, depends on the configuration
 func (s *Sender) UploadFile(payload []byte, fileName string) (string, error) {
-	// Клиентская проверка лимита
+	// Client-side limit check
 	if len(payload) > 100*1024*1024 {
 		return "", fmt.Errorf("file too large: %d bytes (max 100MB)", len(payload))
 	}
@@ -161,12 +159,12 @@ func (s *Sender) UploadFile(payload []byte, fileName string) (string, error) {
 		return "", fmt.Errorf("create upload request: %w", err)
 	}
 
-	// Заголовки
+	// Headings
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("X-File-Name", fileName)
 	req.Header.Set(MaskHeaderName, MaskHeaderValue)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:149.0) Gecko/20100101 Firefox/149.0")
-	// Увеличенный таймаут для загрузки больших файлов
+	// Increased timeout for uploading large files
 	uploadClient := &http.Client{
 		Timeout: 120 * time.Second,
 	}
@@ -186,7 +184,7 @@ func (s *Sender) UploadFile(payload []byte, fileName string) (string, error) {
 		return "", fmt.Errorf("upload failed: %s - %s", resp.Status, string(body))
 	}
 
-	// Сервер возвращает SHA256 хеш в теле ответа
+	// Server returns SHA256 hash in the response body
 	hashBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("read response: %w", err)

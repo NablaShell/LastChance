@@ -19,17 +19,29 @@ const (
 )
 
 // =============================================================================
+// CONFIG STRUCTURE
+// =============================================================================
+
+// Config structure for storing masking settings
+type Config struct {
+	MaskHeaderName  string
+	MaskHeaderValue string
+}
+
+// =============================================================================
 // LISTENER STRUCTURE
 // =============================================================================
 
 type Listener struct {
 	client *http.Client
+	config *Config
 }
 
-func NewListener() *Listener {
+func NewListener(cfg *Config) *Listener {
 	return &Listener{
+		config: cfg,
 		client: &http.Client{
-			Timeout: 60 * time.Second, // 60 seconds for long replies (multipart with files)
+			Timeout: 60 * time.Second,
 		},
 	}
 }
@@ -61,13 +73,13 @@ func (l *Listener) PullMessagesWithAuth(
 	identityHash, pubKeyHex string,
 	privKey ed25519.PrivateKey,
 ) ([][]byte, error) {
-	// ---Forming a signature ---
+	//  Forming a signature
 	now := time.Now().Unix()
 	message := fmt.Sprintf("%d%s", now, identityHash)
 	signature := ed25519.Sign(privKey, []byte(message))
 	sigHex := hex.EncodeToString(signature)
 
-	// ---Let's create a request ---
+	// Let's create a request
 	url := fmt.Sprintf("%s/pull/%s", ServerBaseURL, identityHash)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -81,11 +93,11 @@ func (l *Listener) PullMessagesWithAuth(
 	req.Header.Set("X-Signature", sigHex)
 
 	// Masking Headers
-	req.Header.Set(MaskHeaderName, MaskHeaderValue)
+	req.Header.Set(l.config.MaskHeaderName, l.config.MaskHeaderValue)
 	req.Header.Set("Accept", "multipart/form-data")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Arch Linux; rv:130.0) Gecko/20100101 Firefox/130.0")
 
-	// ---Execute the request ---
+	//  Execute the request
 	resp, err := l.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("pull request failed: %w", err)
@@ -95,7 +107,7 @@ func (l *Listener) PullMessagesWithAuth(
 			log.Printf("Error closing response body: %v", err)
 		}
 	}()
-	// ---Processing statuses ---
+	//  Processing statuses
 
 	// 204 -queue is empty (this is normal)
 	if resp.StatusCode == http.StatusNoContent {
@@ -119,7 +131,7 @@ func (l *Listener) PullMessagesWithAuth(
 		return nil, fmt.Errorf("server returned %d: %s", resp.StatusCode, string(body))
 	}
 
-	// ---Parse multipart/form-data response ---
+	//  Parse multipart/form-data response
 	contentType := resp.Header.Get("Content-Type")
 	_, params, err := mime.ParseMediaType(contentType)
 	if err != nil {

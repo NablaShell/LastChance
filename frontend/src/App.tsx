@@ -663,7 +663,7 @@ function App() {
       {/* ---- Custom Frameless Header ---- */}
       <header className="custom-header">
         <div className="drag-zone">
-          <span className="app-title">LastChance Messenger</span>
+          <span className="app-title">Not LastChance</span>
         </div>
         <div className="window-controls">
           <button
