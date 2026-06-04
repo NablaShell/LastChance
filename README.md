@@ -3,7 +3,7 @@
 > *"Because privacy shouldn't be your last resort, but your first choice."*
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Go Version](https://img.shields.io/badge/Go-1.21%2B-00ADD8?logo=go)](https://go.dev)
+[![Go Version](https://img.shields.io/badge/Go-1.26%2B-00ADD8?logo=go)](https://go.dev)
 [![Wails](https://img.shields.io/badge/Wails-v2-4B32C3?logo=wails)](https://wails.io)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://reactjs.org)
 [![Security: Hardened](https://img.shields.io/badge/Security-Hardened-red)](./SECURITY.md)
@@ -59,30 +59,31 @@ The codebase has undergone a **comprehensive pre-commit security review**:
 
 ### Prerequisites
 
-- Go **1.21+**
+- Go **1.26+**
 - Node.js **18+** & NPM
 - Wails CLI  
   ```bash
   go install github.com/wailsapp/wails/v2/cmd/wails@latest
   ```
-Setup
+  
+## Setup
 
-  Clone the repository
+### Clone the repository
   ```bash
   git clone https://github.com/yourorg/lastchance-messenger.git
   cd lastchance-messenger
-  ```  
-  Configure Environment
+  ```
+### Configure Environment
   Copy .env.example to .env and adjust relay server URLs.
 
-  Build the application
+### Build the application
   ```bash
   wails build
   ```
     
-    The binary will be located in build/bin/.
+ The binary will be located in build/bin/.
 
-   Configuration (.env)
+### Configuration (.env)
   | Variable |	Description	| Default |
   |--------------|----------|----------|
   | SERVER_URL	Base URL | for message relay server |	https://relay.lastchance.example |
@@ -90,33 +91,34 @@ Setup
   | LC_MASK_HEADER_VALUE |	Header value for masking | MySecretToken123 |
 
 
-   Documentation & Transparency
+## Documentation & Transparency
 
 We believe in radical transparency for security tools.
 
-  [Technical API Specifications](https://github.com/NablaShell/LastChance/blob/main/docs/API.md) — Detailed package & encryption logic
+#### [Technical API Specifications](https://github.com/NablaShell/LastChance/blob/main/docs/API.md) — Detailed package & encryption logic
 
-  [Security Audit Report](https://github.com/NablaShell/LastChance/blob/main/docs/Security_Audit_%26_Remediation_Report.md) — Full vulnerability log & fixes
+#### [Security Audit Report](https://github.com/NablaShell/LastChance/blob/main/docs/Security_Audit_%26_Remediation_Report.md) — Full vulnerability log & fixes
 
- Future Roadmap
+## Future Roadmap
 
-    Mesh Networking - Direct peer discovery without relay servers
+- [x] Private nodes — Released a dedicated repository with a server node in Dockerfile format. [Deploy here](https://github.com/NablaShell/LastChance-server)
 
-    Mobile Clients - React Native port of core logic
+- [ ] Availability — Add publicly accessible nodes for communication without private nodes
 
-    Post-Quantum Cryptography - Kyber/Dilithium integration
+- [ ] Mesh Networking — Direct peer discovery without relay servers
 
-    Tor/I2P Integration - Optional anonymization network routing
+- [ ] Mobile Clients — React Native port of core logic
 
-    Availability - Add publicly accessible nodes for communication without private nodes
-    
-    Private nodes - Release a repository with a server node in Dockerfile format
+- [ ] Post-Quantum Cryptography — Kyber/Dilithium integration
 
-##  Contact & Connectivity
+- [ ] Tor/I2P Integration — Optional anonymization network routing##  Contact & Connectivity
+
+## Contact & Connectivity
 
 I prefer decentralized and encrypted communication channels.
 
-*   **Session ID**: [05f08d7242fe9cd621e98ef902cd1a21a8bf10d0c7c946e8c8e469d2396657a637](Preferred for quick chats)
+*   **Session ID**: 05f08d7242fe9cd621e98ef902cd1a21a8bf10d0c7c946e8c8e469d2396657a637
+> (Preferred for quick chats)
 *   **Proton Mail**: `nabla.shell@proton.me` (For long-form inquiries; PGP preferred)
 *   **PGP Key**: Available in [here](/docs/public_key.asc)
     *PGP Fingerprint: 885F 3675 1D87 3F99 55ED 0ABC D1F6 A559 1458 507D*
@@ -125,6 +127,7 @@ I prefer decentralized and encrypted communication channels.
 
 If LastChance helps your OpSec, consider supporting the project.
 Cryptocurrency	Address
+
 ## Support the Project 
 
 If you find **LastChance** useful, consider supporting its development:
@@ -136,7 +139,7 @@ If you find **LastChance** useful, consider supporting its development:
 
 *All donations go towards relay nodes and security audits.*
 
-   License
+### License
 
 LastChance Messenger is released under the GNU Affero General Public License v3.
 You may copy, distribute, and modify the software as long as your modifications are also made available under the AGPLv3.
