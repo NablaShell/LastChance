@@ -12,6 +12,21 @@
 
 ---
 
+## Project Status: Architectural Refactoring
+
+We are currently undergoing a major architectural update regarding our build pipeline and UI/UX design.
+
+### Roadmap
+- [ ] **Build System Overhaul:** Moving to a containerized build environment for consistency.
+- [ ] **Dual-Mode Deployment:**
+    - [ ] **Standard:** Default user directory configuration.
+    - [ ] **Portable:** User-defined directory for local data storage.
+
+> **Note:** These changes are extensive and will take time to stabilize. 
+> Follow our progress in the `crit-tier` branch.
+
+---
+
 ##  Key Features
 
 | Category | Implementation |
@@ -134,8 +149,8 @@ If you find **LastChance** useful, consider supporting its development:
 
 | Asset | Address |
 | :--- | :--- |
-| **BTC** | 8Arc4tRdGAKcWNMLCb7mj2fnYqWgQGhTTgR7FEGaZpL2Pw6MNSwqsGMUGpeQGURgQbDoyxU1ASKMP7dKBJq8yJgCSwCgPYe |
-| **XMR** | bc1qktffxm3579v6zs6mpms4yvwp6m067nkggd8ach |
+| **BTC** | bc1qktffxm3579v6zs6mpms4yvwp6m067nkggd8ach |
+| **XMR** | 85KKisCGfVdV9irQfpgTRrRQPsZxeoc2uPpR23LEzrS2a7YJ4qu4M9g6wuh43pRKYKE8mMo9y5mv93X3KvaEEiYK9PdcDUV |
 
 *All donations go towards relay nodes and security audits.*
 
