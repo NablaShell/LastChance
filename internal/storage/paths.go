@@ -1,10 +1,11 @@
-// storage/paths.go
+// internal/storage/paths.go
 package storage
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -14,12 +15,12 @@ type SafeFSOps struct {
 	root string
 }
 
-// NewSafeFSOps создаёт песочницу с указанным корневым путём.
-// Все операции будут ограничены этой директорией.
+// NewSafeFSOps creates a sandbox with the specified root path.
+// All operations will be limited to this directory.
 func NewSafeFSOps(root string) (*SafeFSOps, error) {
 	cleanRoot := filepath.Clean(root)
 
-	// Checking existence and rights
+	// Check existence and permissions
 	info, err := os.Stat(cleanRoot)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -34,21 +35,21 @@ func NewSafeFSOps(root string) (*SafeFSOps, error) {
 	return &SafeFSOps{root: cleanRoot}, nil
 }
 
-// ResolvePath clears and checks that the path is inside root.
+// ResolvePath cleans and checks that the path is inside root.
 func (s *SafeFSOps) ResolvePath(userPath string) (string, error) {
 	// Step 1: Path cleaning (removes ../, ./, extra slashes)
 	cleanPath := filepath.Clean(userPath)
 
-	// Step 2: Making it absolute relative root
+	// Step 2: Making it absolute relative to root
 	absPath := filepath.Join(s.root, cleanPath)
 
-	// Step 3: Let's check that we haven't gone overboard root
+	// Step 3: Verify we haven't gone outside root
 	rel, err := filepath.Rel(s.root, absPath)
 	if err != nil {
 		return "", fmt.Errorf("path resolution failed: %w", err)
 	}
 
-	// We prohibit exit through "../../../"
+	// Forbid escaping through "../../../"
 	if strings.HasPrefix(rel, "..") {
 		return "", fmt.Errorf("path traversal detected: %s", userPath)
 	}
@@ -62,7 +63,7 @@ func (s *SafeFSOps) SafeOpenFile(userPath string) (*os.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	// #nosec G304 — safePath has already been checked ResolvePath
+	// #nosec G304 — safePath already validated by ResolvePath
 	file, err := os.Open(safePath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot open %s: %w", safePath, err)
@@ -78,7 +79,7 @@ func (s *SafeFSOps) SafeWriteFile(userPath string, data []byte, perm os.FileMode
 		return err
 	}
 
-	// Make sure the parent directory exists
+	// Ensure parent directory exists
 	dir := filepath.Dir(safePath)
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("cannot create directory %s: %w", dir, err)
@@ -93,7 +94,7 @@ func (s *SafeFSOps) SafeReadFile(userPath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	// #nosec G304 — safePath has already been checked ResolvePath
+	// #nosec G304 — safePath already validated by ResolvePath
 	return os.ReadFile(safePath)
 }
 
@@ -115,4 +116,55 @@ func (s *SafeFSOps) EnsureDir(dirPath string) error {
 	}
 
 	return os.MkdirAll(safePath, 0700)
+}
+
+// GetBaseDir determines the application's base directory based on the presence of a .portable flag.
+// If a .portable file exists next to the executable, it uses a 'data' subdirectory there.
+// Otherwise, it uses the standard XDG path: ~/.local/share/lastchance/
+// The directory is automatically created with 0700 permissions.
+func GetBaseDir() (string, error) {
+	execPath, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("unable to get executable path: %w", err)
+	}
+	execDir := filepath.Dir(execPath)
+
+	portableFlag := filepath.Join(execDir, ".portable")
+	if _, err := os.Stat(portableFlag); err == nil {
+		// Portable mode
+		baseDir := filepath.Join(execDir, "data")
+		if err := os.MkdirAll(baseDir, 0700); err != nil {
+			return "", fmt.Errorf("failed to create portable data directory: %w", err)
+		}
+		return baseDir, nil
+	}
+
+	// Standard mode: XDG_DATA_HOME or ~/.local/share
+	var dataHome string
+	if runtime.GOOS == "windows" {
+		// On Windows we fall back to AppData/Local
+		localAppData := os.Getenv("LOCALAPPDATA")
+		if localAppData == "" {
+			home, _ := os.UserHomeDir()
+			localAppData = filepath.Join(home, "AppData", "Local")
+		}
+		dataHome = localAppData
+	} else {
+		// Unix-like: respect XDG_DATA_HOME, default to ~/.local/share
+		dataHome = os.Getenv("XDG_DATA_HOME")
+		if dataHome == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return "", fmt.Errorf("cannot find home directory: %w", err)
+			}
+			dataHome = filepath.Join(home, ".local", "share")
+		}
+	}
+
+	baseDir := filepath.Join(dataHome, "lastchance")
+	if err := os.MkdirAll(baseDir, 0700); err != nil {
+		return "", fmt.Errorf("failed to create app data directory: %w", err)
+	}
+
+	return baseDir, nil
 }

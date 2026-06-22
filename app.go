@@ -1,3 +1,4 @@
+// app.go
 package main
 
 import (
@@ -34,7 +35,10 @@ import (
 type App struct {
 	ctx    context.Context
 	logger *slog.Logger
-	config *network.Config 
+	config *network.Config
+
+	// Базовая директория для всех данных (портабельная или ~/.local/share/lastchance)
+	baseDir string
 
 	// Хранилище
 	storage   *storage.Storage
@@ -63,11 +67,12 @@ type App struct {
 	safeFS *storage.SafeFSOps // безопасные операции с ФС
 }
 
-func NewApp(cfg *network.Config) *App {
-    return &App{
-        config:        cfg,
-        sharedSecrets: make(map[string][]byte),
-    }
+func NewApp(cfg *network.Config, baseDir string) *App {
+	return &App{
+		config:        cfg,
+		baseDir:       baseDir,
+		sharedSecrets: make(map[string][]byte),
+	}
 }
 
 // ============================================================
@@ -82,26 +87,20 @@ func (a *App) startup(ctx context.Context) {
 		Level: slog.LevelInfo,
 	}))
 
-	// --- Путь к данным ---
-	storagePath := os.Getenv("STORAGE_PATH")
-	if storagePath == "" {
-		storagePath = "./person_data"
-	}
-
-	// Инициализация безопасной ФС
-	safeFS, err := storage.NewSafeFSOps(storagePath)
+	// --- Безопасная файловая система от базовой директории ---
+	safeFS, err := storage.NewSafeFSOps(a.baseDir)
 	if err != nil {
 		log.Fatal("Failed to initialize safe filesystem:", err)
 	}
 	a.safeFS = safeFS
 
-	// Создаём хранилище через SafeFSOps
+	// Гарантируем, что базовая директория существует (уже создана GetBaseDir, но на всякий случай)
 	if err := safeFS.EnsureDir("."); err != nil {
-		log.Fatal("Cannot create storage directory:", err)
+		log.Fatal("Cannot ensure base directory:", err)
 	}
 
 	// --- Загрузка или создание идентичности ---
-	a.idManager = identity.NewIdentityManager(storagePath)
+	a.idManager = identity.NewIdentityManager(a.baseDir)
 	id, err := a.idManager.LoadOrCreate("")
 	if err != nil {
 		log.Fatal("Failed to load/create identity:", err)
@@ -116,7 +115,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ed25519PubKeyHex = a.identity.GetEd25519PublicKeyHex()
 
 	// --- Инициализация хранилища ---
-	store, err := storage.NewStorage(storagePath)
+	store, err := storage.NewStorage(a.baseDir)
 	if err != nil {
 		log.Fatal("Failed to open database:", err)
 	}
@@ -143,7 +142,7 @@ func (a *App) startup(ctx context.Context) {
 	}
 
 	// --- Сетевые компоненты ---
-	a.sender = network.NewSender()
+	a.sender = network.NewSender(a.config)
 	a.listener = network.NewListener(a.config)
 
 	// Регистрация кастомного протокола
@@ -161,6 +160,7 @@ func (a *App) startup(ctx context.Context) {
 	a.logger.Info("App started",
 		"nickname", a.identity.Nickname,
 		"hash", a.identity.Hash[:16]+"...",
+		"baseDir", a.baseDir,
 		"contacts", len(contacts),
 	)
 }

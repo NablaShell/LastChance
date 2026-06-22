@@ -5,7 +5,6 @@ go 1.26.2
 require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gen2brain/beeep v0.11.2
-	github.com/joho/godotenv v1.5.1
 	github.com/tyler-smith/go-bip39 v1.1.0
 	github.com/wailsapp/wails/v2 v2.12.0
 	golang.org/x/crypto v0.50.0
